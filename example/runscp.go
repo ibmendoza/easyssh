@@ -7,9 +7,12 @@ import (
 	"log"
 )
 
+//For example, pass -user root -server 192.168.56.101 -keypath path/to/id_rsa -cmd pwd
+
 var user = flag.String("user", "", "username")
 var server = flag.String("server", "", "server name or IP address")
 var pswd = flag.String("pswd", "", "password")
+var keypath = flag.String("keypath", "", "keypath")
 var scp = flag.String("scp", "", "optional file to upload")
 var cmd = flag.String("cmd", "", "optional command to run")
 
@@ -20,6 +23,7 @@ func main() {
 	ssh := &easyssh.MakeConfig{
 		User:     *user,
 		Server:   *server,
+		Key:      *keypath,
 		Password: *pswd,
 		Port:     "22",
 	}
