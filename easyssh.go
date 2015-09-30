@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/user"
 	"path/filepath"
 
 	"golang.org/x/crypto/ssh"
@@ -35,13 +34,16 @@ type MakeConfig struct {
 // returns ssh.Signer from user you running app home path + cutted key path.
 // (ex. pubkey,err := getKeyFile("/.ssh/id_rsa") )
 func getKeyFile(keypath string) (ssh.Signer, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return nil, err
-	}
+	/*
+		usr, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
 
-	file := usr.HomeDir + keypath
-	buf, err := ioutil.ReadFile(file)
+		file := usr.HomeDir + keypath
+	*/
+
+	buf, err := ioutil.ReadFile(keypath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,15 +64,14 @@ func (ssh_conf *MakeConfig) connect() (*ssh.Session, error) {
 	// figure out what auths are requested, what is supported
 	if ssh_conf.Password != "" {
 		auths = append(auths, ssh.Password(ssh_conf.Password))
-	}
+	} else if ssh_conf.Key != "" {
 
-	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
+		if pubkey, err := getKeyFile(ssh_conf.Key); err == nil {
+			auths = append(auths, ssh.PublicKeys(pubkey))
+		}
+	} else if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
 		auths = append(auths, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
 		defer sshAgent.Close()
-	}
-
-	if pubkey, err := getKeyFile(ssh_conf.Key); err == nil {
-		auths = append(auths, ssh.PublicKeys(pubkey))
 	}
 
 	config := &ssh.ClientConfig{
